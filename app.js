@@ -3,12 +3,13 @@ const app = express();
 const path = require('path');
 const ejsMate = require('ejs-mate');
 const joi = require('joi');
-const { campgroundSchema } = require('./schemas')
+const { campgroundSchema , reviewSchema} = require('./schemas')
 const catchAsync = require('./utils/catchAsync');
 const ExpressError = require('./utils/ExpressError');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
 const Campground = require('./models/campground')
+const Review = require('./models/review')
 
 // databse connection.....
 mongoose.connect('mongodb://localhost:27017/yelp-camp')
@@ -41,6 +42,17 @@ const validateCampground = (req, res, next) =>{
 }
 
 
+const validateReview = (req, res, next)=>{
+    const {error} = reviewSchema.validate(req.body);
+    if(error){
+        const msg = error.details.map(el => el.message).join(',');
+        throw new ExpressError(msg, 400)
+    }
+    else{
+        next();
+    }
+}
+
 app.get('/', (req,res)=>{
     res.render('home')
 })
@@ -61,6 +73,9 @@ app.post('/campgrounds', validateCampground, catchAsync(async (req,res)=>{
     await campground.save();
     res.redirect(`/campgrounds/${campground._id}`);
 }))
+
+
+
 
 app.get('/campgrounds/:id', catchAsync(async (req,res)=>{
     const campground = await Campground.findById(req.params.id);
@@ -86,6 +101,17 @@ app.delete('/campgrounds/:id',catchAsync(async (req,res)=>{
 
 
 }))
+
+
+app.post('/campgrounds/:id/reviews', validateReview, catchAsync(async (req , res)=>{
+    const campground = await Campground.findById(req.params.id);
+    const review = new Review(req.body.review);
+    campground.reviews.push(review);
+    await review.save();
+    await campground.save();
+    res.redirect(`/campgrounds/${campground._id}`);
+}))
+
 
 app.all('*', (req, res, next)=>{
     next(new ExpressError('Page Not Found'))
