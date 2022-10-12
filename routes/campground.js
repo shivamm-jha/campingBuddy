@@ -41,9 +41,7 @@ router.post('/', validateCampground, catchAsync(async (req,res)=>{
 }))
 
 
-router.get('/waste',(req,res=>{
-    console.log('waste');
-}))
+
 
 
 router.get('/:id', catchAsync(async (req,res)=>{
