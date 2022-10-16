@@ -34,11 +34,12 @@ router.get('/new',isLoggedIn,(req,res)=>{
         req.flash('error','you must be signed in');
         return res.redirect('/login');
     }
-    res.render('campgrounds/new');
+    else res.render('campgrounds/new');
 })
 
 router.post('/',isLoggedIn, validateCampground, catchAsync(async (req,res)=>{
     const campground = new Campground(req.body.campground);
+    campground.author = req.user._id;
     await campground.save();
     req.flash('success', 'successfully made a new campground!');
     res.redirect(`/campgrounds/${campground._id}`);
@@ -48,12 +49,13 @@ router.post('/',isLoggedIn, validateCampground, catchAsync(async (req,res)=>{
 
 
 router.get('/:id', catchAsync(async (req,res)=>{
-    const campground = await Campground.findById(req.params.id).populate('reviews');
+    const campground = await Campground.findById(req.params.id).populate('reviews').populate('author');
+    //console.log(campground);
     if(!campground){
         req.flash('error','Cannot find that campground');
         return res.redirect('/campgrounds');
     }
-    res.render('campgrounds/show',{campground});
+    else res.render('campgrounds/show',{campground});
 }))
 
 router.get('/:id/edit',isLoggedIn, catchAsync(async(req,res)=>{
@@ -68,7 +70,7 @@ router.put('/:id', validateCampground, catchAsync(async(req,res)=>{
     res.redirect(`/campgrounds/${ campground._id }`);
 }))
 
-router.delete('/:id',catchAsync(async (req,res)=>{
+router.delete('/:id',isLoggedIn,catchAsync(async (req,res)=>{
     const {id} = req.params;
     await Campground.findByIdAndDelete(id);
     req.flash('success','Successfully deleted the campground');
